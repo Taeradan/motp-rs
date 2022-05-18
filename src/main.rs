@@ -1,8 +1,12 @@
 extern crate clap;
+extern crate clipboard_ext;
 
 use std::io::{self, Read};
 
 use clap::{App, Arg};
+
+use clipboard_ext::prelude::*;
+use clipboard_ext::x11_fork::ClipboardContext;
 
 mod lib;
 
@@ -24,6 +28,10 @@ fn main() {
                 .help("Pin code. If not given, will be expected via stdin.")
                 .required(false).takes_value(true),
         )
+        .arg(Arg::with_name("clipboard")
+            .short("c")
+            .long("clipboard")
+            .help("Copy to clipboard"))
         .get_matches();
 
     let secret = matches.value_of("SECRET").unwrap();
@@ -38,5 +46,12 @@ fn main() {
         }
     };
 
-    print!("{}", lib::create_otp(secret, &pin));
+    let otp = lib::create_otp(secret, &pin);
+    if matches.is_present("clipboard") {
+        let mut ctx: ClipboardContext = ClipboardProvider::new().unwrap();
+        ctx.set_contents(otp.to_owned()).unwrap();
+        print!("OTP copied in clipboard");
+    } else {
+        print!("{}", otp);
+    }
 }
